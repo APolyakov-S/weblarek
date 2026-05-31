@@ -1,74 +1,91 @@
+import '../src/scss/styles.scss';
 import { CatalogModel } from './components/models/CatalogModel';
 import { CartModel } from './components/models/CartModel';
 import { BuyerModel } from './components/models/BuyerModel';
-import { EventEmitter } from './components/base/Events';
 import { Api } from './components/base/Api';
 import { WebLarekApi } from './components/WebLarekApi';
 import { API_URL } from './utils/constants';
-import { IProduct, IBuyer } from './types';
 
-const events = new EventEmitter();
+// === ТЕСТИРОВАНИЕ С МОКОВЫМИ ДАННЫМИ ===
+console.log('========== ТЕСТИРОВАНИЕ С МОКОВЫМИ ДАННЫМИ ==========');
+
+// Моковые данные
+const mockProducts = [
+    {
+        id: "mock1",
+        description: "Моковый товар 1",
+        image: "image1.jpg",
+        title: "Мок Товар 1",
+        category: "софт-скилс",
+        price: 1000
+    },
+    {
+        id: "mock2",
+        description: "Моковый товар 2",
+        image: "image2.jpg",
+        title: "Мок Товар 2",
+        category: "хард-скилс",
+        price: 2000
+    }
+];
+
+// Тестирование CatalogModel
+const catalogModel = new CatalogModel();
+console.log('1. CatalogModel - начальное состояние getItems():', catalogModel.getItems());
+catalogModel.setItems(mockProducts);
+console.log('2. CatalogModel - после setItems(), getItems():', catalogModel.getItems());
+console.log('3. CatalogModel - getItem("mock1"):', catalogModel.getItem("mock1"));
+catalogModel.setPreview(mockProducts[0]);
+console.log('4. CatalogModel - после setPreview(), getPreview():', catalogModel.getPreview());
+
+// Тестирование CartModel
+const cartModel = new CartModel();
+console.log('\n5. CartModel - начальное состояние getItems():', cartModel.getItems());
+console.log('6. CartModel - getCount():', cartModel.getCount());
+console.log('7. CartModel - getTotal():', cartModel.getTotal());
+cartModel.addItem(mockProducts[0]);
+cartModel.addItem(mockProducts[1]);
+cartModel.addItem(mockProducts[0]);
+console.log('8. CartModel - после addItem() x3, getItems():', cartModel.getItems());
+console.log('9. CartModel - getCount():', cartModel.getCount());
+console.log('10. CartModel - getTotal():', cartModel.getTotal());
+cartModel.removeItem("mock1");
+console.log('11. CartModel - после removeItem("mock1"), getItems():', cartModel.getItems());
+console.log('12. CartModel - hasItem("mock1"):', cartModel.hasItem("mock1"));
+console.log('13. CartModel - hasItem("mock2"):', cartModel.hasItem("mock2"));
+cartModel.clear();
+console.log('14. CartModel - после clear(), getItems():', cartModel.getItems());
+
+// Тестирование BuyerModel
+const buyerModel = new BuyerModel();
+console.log('\n15. BuyerModel - начальное состояние getBuyerData():', buyerModel.getBuyerData());
+console.log('16. BuyerModel - validate():', buyerModel.validate());
+buyerModel.setPayment('card');
+buyerModel.setAddress('г. Москва, ул. Тестовая, д. 1');
+console.log('17. BuyerModel - после setPayment() и setAddress(), getBuyerData():', buyerModel.getBuyerData());
+console.log('18. BuyerModel - validate():', buyerModel.validate());
+buyerModel.setEmail('test@example.com');
+buyerModel.setPhone('+79991234567');
+console.log('19. BuyerModel - после setEmail() и setPhone(), getBuyerData():', buyerModel.getBuyerData());
+console.log('20. BuyerModel - validate():', buyerModel.validate());
+buyerModel.clear();
+console.log('21. BuyerModel - после clear(), getBuyerData():', buyerModel.getBuyerData());
+console.log('22. BuyerModel - validate():', buyerModel.validate());
+
+// === ТЕСТИРОВАНИЕ С РЕАЛЬНЫМИ ДАННЫМИ С СЕРВЕРА ===
+console.log('\n========== ТЕСТИРОВАНИЕ С РЕАЛЬНЫМИ ДАННЫМИ ==========');
+
 const baseApi = new Api(API_URL);
 const webLarekApi = new WebLarekApi(baseApi);
 
-const catalogModel = new CatalogModel(events);
-const cartModel = new CartModel(events);
-const buyerModel = new BuyerModel(events);
-
-events.on('catalog:changed', (data: IProduct[]) => {
-    console.log('Событие: каталог обновлён. Количество товаров:', data.length || 0);
-});
-
-events.on('cart:changed', (data: IProduct[]) => {
-    console.log('Событие: корзина изменена. Товаров в корзине:', data.length || 0);
-});
-
-events.on('buyer:changed', (data: IBuyer) => {
-    console.log('Событие: данные покупателя изменены:', data);
-});
-
-// === ТЕСТИРОВАНИЕ РАБОТЫ С СЕРВЕРОМ ===
-console.log('\n========== ПОЛУЧЕНИЕ ТОВАРОВ С СЕРВЕРА ==========');
-
 webLarekApi.getProducts()
-  .then(products => {
-    console.log('1. Товары получены с сервера:', products);
-    console.log('2. Количество полученных товаров:', products.length);
-    
-    // Сохраняем полученные товары в модель каталога
-    catalogModel.setItems(products);
-    console.log('3. Товары сохранены в каталог. Каталог после сохранения:', catalogModel.getItems());
-    
-    // Проверяем работу модели с реальными данными
-    const firstProduct = catalogModel.getItem(products[0].id);
-    console.log('4. Получение первого товара из каталога по id:', firstProduct);
-    
-    return products;
-  })
-  .catch(error => {
-    console.error('Ошибка при получении товаров с сервера:', error);
-  });
-
-// === ТЕСТИРОВАНИЕ ОТПРАВКИ ЗАКАЗА (опционально) ===
-console.log('\n========== ТЕСТИРОВАНИЕ ОТПРАВКИ ЗАКАЗА ==========');
-
-// Пример данных для отправки заказа
-const testOrderData = {
-  payment: 'card' as const,
-  email: 'test@example.com',
-  phone: '+79991234567',
-  address: 'г. Москва, ул. Тестовая, д. 1',
-  total: 750,
-  items: ['854cef69-976d-4c2a-a18c-2aa45046c390']
-};
-
-webLarekApi.postOrder(testOrderData)
-  .then(result => {
-    console.log('Результат оформления заказа:', result);
-    console.log('ID заказа:', result.id);
-    console.log('Сумма заказа:', result.total);
-  })
-  .catch(error => {
-    console.error('Ошибка при отправке заказа:', error);
-  });
-
+    .then(response => {
+        console.log('23. WebLarekApi.getProducts() - получен ответ от сервера:', response);
+        console.log('24. Количество товаров:', response.items.length);
+        
+        catalogModel.setItems(response.items);
+        console.log('25. CatalogModel - после setItems() с реальными данными, getItems():', catalogModel.getItems());
+    })
+    .catch(error => {
+        console.error('Ошибка при получении товаров:', error);
+    });

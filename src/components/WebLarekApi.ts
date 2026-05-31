@@ -8,9 +8,8 @@ interface IProductsResponse {
 export class WebLarekApi {
     constructor(private api: IApi) {}
 
-    public getProducts(): Promise<IProduct[]> {
-        return this.api.get<IProductsResponse>('/product')
-            .then((data) => data.items);
+    public getProducts(): Promise<IProductsResponse> {
+        return this.api.get<IProductsResponse>('/product');
     }
 
     public postOrder(order: IOrderData): Promise<IOrderResult> {

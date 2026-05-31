@@ -17,7 +17,7 @@ export interface IProduct {
 export type TPayment = 'card' | 'cash';
 
 export interface IBuyer {
-  payment: TPayment;
+  payment: TPayment | null;
   email: string;
   phone: string;
   address: string;
@@ -25,16 +25,14 @@ export interface IBuyer {
 
 // Типы для работы с API
 
-export interface IOrderData {
-  payment: TPayment;
-  email: string;
-  phone: string;
-  address: string;
-  total: number;
-  items: string[];
+export interface IOrderData extends IBuyer {
+    total: number;
+    items: string[];
 }
 
 export interface IOrderResult {
   id: string;
   total: number;
 }
+
+export type TValidationErrors = Partial<Record<keyof IBuyer, string>>;
