@@ -23,8 +23,6 @@ export interface IBuyer {
   address: string;
 }
 
-// Типы для работы с API
-
 export interface IOrderData extends IBuyer {
     total: number;
     items: string[];
@@ -33,6 +31,11 @@ export interface IOrderData extends IBuyer {
 export interface IOrderResult {
   id: string;
   total: number;
+}
+
+export interface IProductsResponse {
+    items: IProduct[];
+    total: number;
 }
 
 export type TValidationErrors = Partial<Record<keyof IBuyer, string>>;
