@@ -1,7 +1,7 @@
+import { Form } from './Form';
 import { EventEmitter } from '../base/Events';
-import { Form, IFormData } from './Form';
 
-export interface IContactsFormData extends IFormData {
+export interface IContactsFormData {
     email: string;
     phone: string;
 }
@@ -9,28 +9,47 @@ export interface IContactsFormData extends IFormData {
 export class ContactsForm extends Form<IContactsFormData> {
     private emailInput: HTMLInputElement;
     private phoneInput: HTMLInputElement;
-    
-    constructor(container: HTMLElement, events: EventEmitter) {
-        super(container, events, 'contacts:submit');
+
+    constructor(container: HTMLElement, events?: EventEmitter) {
+        super(container, events);
         
-        this.emailInput = this.inputs.get('email') as HTMLInputElement;
-        this.phoneInput = this.inputs.get('phone') as HTMLInputElement;
+        this.emailInput = this.findInput('email') as HTMLInputElement;
+        this.phoneInput = this.findInput('phone') as HTMLInputElement;
+        
+        this.emailInput.addEventListener('input', () => this.validate());
+        this.phoneInput.addEventListener('input', () => this.validate());
+        
+        this.submitButton.addEventListener('click', () => {
+            if (this.validate()) {
+                this.events?.emit('contacts:submit', this.getValue());
+            }
+        });
     }
-    
-    public validate(): boolean {
-        const email = this.emailInput ? this.emailInput.value.trim() : '';
-        const phone = this.phoneInput ? this.phoneInput.value.trim() : '';
-        
+
+    protected getEventPrefix(): string {
+        return 'contacts';
+    }
+
+    getValue(): IContactsFormData {
+        return {
+            email: this.emailInput?.value || '',
+            phone: this.phoneInput?.value || ''
+        };
+    }
+
+    private validate(): boolean {
+        const email = this.emailInput?.value.trim() || '';
+        const phone = this.phoneInput?.value.trim() || '';
         const isValid = email.length > 0 && phone.length > 0;
         
-        this.submitButton.disabled = !isValid;
+        this.setValid(isValid);
         
         if (!email) {
-            this.errorContainer.textContent = 'Укажите email';
+            this.setErrors({ email: 'Укажите email' });
         } else if (!phone) {
-            this.errorContainer.textContent = 'Укажите телефон';
+            this.setErrors({ phone: 'Укажите телефон' });
         } else {
-            this.errorContainer.textContent = '';
+            this.setErrors({});
         }
         
         return isValid;

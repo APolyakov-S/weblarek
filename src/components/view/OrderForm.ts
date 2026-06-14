@@ -1,8 +1,8 @@
+import { Form } from './Form';
 import { EventEmitter } from '../base/Events';
-import { Form, IFormData } from './Form';
 import { ensureElement } from '../../utils/utils';
 
-export interface IOrderFormData extends IFormData {
+export interface IOrderFormData {
     payment: 'card' | 'cash';
     address: string;
 }
@@ -12,57 +12,64 @@ export class OrderForm extends Form<IOrderFormData> {
     private cashButton: HTMLButtonElement;
     private addressInput: HTMLInputElement;
 
-    constructor(container: HTMLElement, events: EventEmitter) {
-        super(container, events, 'order:submit');
+    constructor(container: HTMLElement, events?: EventEmitter) {
+        super(container, events);
         
-        this.cardButton = ensureElement('.button_alt-card', this.container) as HTMLButtonElement;
-        this.cashButton = ensureElement('.button_alt-cash', this.container) as HTMLButtonElement;
-        this.addressInput = this.inputs.get('address') as HTMLInputElement;
+        this.cardButton = ensureElement('.button_alt', this.container) as HTMLButtonElement;
+        this.cashButton = ensureElement('.button_alt', this.container) as HTMLButtonElement;
+        this.addressInput = this.findInput('address') as HTMLInputElement;
         
-        this.cardButton.addEventListener('click', () => this.selectPayment('card'));
-        this.cashButton.addEventListener('click', () => this.selectPayment('cash'));
+        this.cardButton.addEventListener('click', () => this.setPayment('card'));
+        this.cashButton.addEventListener('click', () => this.setPayment('cash'));
+        this.addressInput.addEventListener('input', () => this.validate());
+        
+        this.submitButton.addEventListener('click', () => {
+            if (this.validate()) {
+                this.events?.emit('order:submit', this.getValue());
+            }
+        });
     }
-    
-    private selectPayment(payment: 'card' | 'cash'): void {
-        this.cardButton.classList.toggle('button_alt-active', payment === 'card');
-        this.cashButton.classList.toggle('button_alt-active', payment === 'cash');
-        
-        const formData = this.getFormData();
-        this.events.emit('form:changed', formData);
+
+    protected getEventPrefix(): string {
+        return 'order';
+    }
+
+    setPayment(method: 'card' | 'cash'): void {
+        this.cardButton.classList.toggle('button_alt-active', method === 'card');
+        this.cashButton.classList.toggle('button_alt-active', method === 'cash');
         this.validate();
     }
-    
-    private getFormData(): IOrderFormData {
+
+    setAddress(address: string): void {
+        if (this.addressInput) {
+            this.addressInput.value = address;
+            this.validate();
+        }
+    }
+
+    getValue(): IOrderFormData {
         return {
             payment: this.cardButton.classList.contains('button_alt-active') ? 'card' : 'cash',
             address: this.addressInput?.value || ''
         };
     }
-    
-    public validate(): boolean {
+
+    private validate(): boolean {
         const hasPayment = this.cardButton.classList.contains('button_alt-active') || 
                           this.cashButton.classList.contains('button_alt-active');
         const hasAddress = this.addressInput && this.addressInput.value.trim().length > 0;
         const isValid = hasPayment && hasAddress;
         
-        this.submitButton.disabled = !isValid;
+        this.setValid(isValid);
         
         if (!hasPayment) {
-            this.errorContainer.textContent = 'Выберите способ оплаты';
+            this.setErrors({ payment: 'Выберите способ оплаты' });
         } else if (!hasAddress) {
-            this.errorContainer.textContent = 'Укажите адрес доставки';
+            this.setErrors({ address: 'Укажите адрес доставки' });
         } else {
-            this.errorContainer.textContent = '';
+            this.setErrors({});
         }
         
         return isValid;
-    }
-    
-    set data(value: IOrderFormData) {
-        this.selectPayment(value.payment);
-        if (this.addressInput) {
-            this.addressInput.value = value.address;
-        }
-        this.validate();
     }
 }

@@ -1,6 +1,15 @@
 import { IBuyer, TPayment } from '../../types';
 import { EventEmitter } from '../base/Events';
 
+export interface IOrderRequest {
+    payment: TPayment;
+    email: string;
+    phone: string;
+    address: string;
+    total: number;
+    items: string[];
+}
+
 export class OrderModel {
     private payment: TPayment | null = null;
     private address: string = '';
@@ -45,6 +54,25 @@ export class OrderModel {
                 break;
         }
     }
+
+    createRequest(items: string[], total: number): IOrderRequest {
+    const errors = this.validate();
+    if (Object.keys(errors).length > 0) {
+        throw new Error('Данные заказа не валидны');
+    }
+    if (items.length === 0) {
+        throw new Error('Корзина пуста');
+    }
+    
+    return {
+        payment: this.payment!,
+        email: this.email,
+        phone: this.phone,
+        address: this.address,
+        total: total,
+        items: items
+    };
+}
 
     getOrderData(): IBuyer {
         return {

@@ -1,20 +1,14 @@
-import { EventEmitter } from '../base/Events';
-import { ViewContainer } from './ViewContainer';
 import { ensureElement } from '../../utils/utils';
 
-export interface IModalView {
-    content: HTMLElement;
-}
-
-export class ModalView extends ViewContainer<IModalView> {
-    private closeButton: HTMLElement;
+export class Modal {
+    private container: HTMLElement;
     private contentContainer: HTMLElement;
+    private closeButton: HTMLElement;
 
-    constructor(container: HTMLElement, events: EventEmitter) {
-        super(container, events);
-        
-        this.closeButton = ensureElement('.modal__close', this.container);
+    constructor(container: HTMLElement, private onClose?: () => void) {
+        this.container = container;
         this.contentContainer = ensureElement('.modal__content', this.container);
+        this.closeButton = ensureElement('.modal__close', this.container);
         
         this.closeButton.addEventListener('click', () => this.close());
         this.container.addEventListener('click', (e) => {
@@ -34,12 +28,11 @@ export class ModalView extends ViewContainer<IModalView> {
         return this.container.classList.contains('modal_active');
     }
 
-    set content(content: HTMLElement) {
-        this.contentContainer.innerHTML = '';
-        this.contentContainer.appendChild(content);
-    }
-
-    open(): void {
+    open(content?: HTMLElement): void {
+        if (content) {
+            this.contentContainer.innerHTML = '';
+            this.contentContainer.appendChild(content);
+        }
         this.container.classList.add('modal_active');
         document.body.style.overflow = 'hidden';
     }
@@ -47,12 +40,8 @@ export class ModalView extends ViewContainer<IModalView> {
     close(): void {
         this.container.classList.remove('modal_active');
         document.body.style.overflow = '';
-        this.events.emit('modal:close');
-    }
-
-    render(data?: Partial<IModalView>): HTMLElement {
-        if (data?.content) this.content = data.content;
-        this.open();
-        return this.container;
+        if (this.onClose) {
+            this.onClose();
+        }
     }
 }
