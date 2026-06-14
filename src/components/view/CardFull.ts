@@ -1,57 +1,93 @@
-import { ensureElement } from '../../utils/utils';
-import { categoryMap } from '../../utils/constants';
-import { setCategoryStyle } from '../../utils/utils';
+import { Component } from '../base/Component';
+import { ICardFull, TCardFullActions } from '../../types';
 import { CDN_URL } from '../../utils/constants';
-import { TCardFullActions, ICardFull } from '../../types';
-import { CardBase } from './CardBase';
 
-export class CardFull extends CardBase<ICardFull> {
-  protected cardCategory: HTMLElement;
-  protected cardImage: HTMLImageElement;
-  protected cardDescription: HTMLElement;
-  protected cardButton: HTMLButtonElement;
+export class CardFull extends Component<ICardFull> {
+    private titleElement: HTMLElement | null;
+    private priceElement: HTMLElement | null;
+    private categoryElement: HTMLElement | null;
+    private imageElement: HTMLImageElement | null;
+    private descriptionElement: HTMLElement | null;
+    private buttonElement: HTMLButtonElement | null;
 
-  constructor(container: HTMLElement, actions: TCardFullActions) {
-    super(container);
+    constructor(container: HTMLElement, actions?: TCardFullActions) {
+        super(container);
+        
+        this.titleElement = container.querySelector('.card__title');
+        this.priceElement = container.querySelector('.card__price');
+        this.categoryElement = container.querySelector('.card__category');
+        this.imageElement = container.querySelector('.card__image');
+        this.descriptionElement = container.querySelector('.card__text');
+        this.buttonElement = container.querySelector('.card__button');
+        
+        if (this.buttonElement && actions?.onButtonClick) {
+            this.buttonElement.addEventListener('click', actions.onButtonClick);
+        }
+    }
 
-    this.cardCategory = ensureElement<HTMLElement>(
-      '.card__category',
-      this.container,
-    );
-    this.cardImage = ensureElement<HTMLImageElement>(
-      '.card__image',
-      this.container,
-    );
-    this.cardDescription = ensureElement<HTMLElement>(
-      '.card__text',
-      this.container,
-    );
-    this.cardButton = ensureElement<HTMLButtonElement>(
-      '.card__button',
-      this.container,
-    );
+    set title(value: string) {
+        if (this.titleElement) this.titleElement.textContent = value;
+    }
 
-    this.cardButton.addEventListener('click', actions.onButtonClick);
-  }
+    set price(value: number | null) {
+        if (this.priceElement) {
+            if (value === null) {
+                this.priceElement.textContent = 'Бесценно';
+            } else {
+                this.priceElement.textContent = `${value} синапсов`;
+            }
+        }
+    }
 
-  set category(value: string) {
-    setCategoryStyle(this.cardCategory, value, categoryMap);
-  }
+    set category(value: string) {
+        if (this.categoryElement) {
+            this.categoryElement.textContent = value;
+            const categoryMap: Record<string, string> = {
+                'софт-скилс': 'card__category_soft',
+                'хард-скилс': 'card__category_hard',
+                'другое': 'card__category_other',
+                'дополнительное': 'card__category_additional',
+                'кнопка': 'card__category_button'
+            };
+            const className = categoryMap[value] || 'card__category_other';
+            this.categoryElement.className = `card__category ${className}`;
+        }
+    }
 
-  set description(value: string) {
-    this.cardDescription.textContent = value;
-  }
+    set image(value: string) {
+        if (this.imageElement) {
+            const fullUrl = value.startsWith('http') ? value : CDN_URL + value;
+            this.imageElement.src = fullUrl;
+            this.imageElement.alt = this.title || 'product';
+        }
+    }
 
-  set image(value: string) {
-    const imagePath = value.replace('.svg', '.png');
-    this.cardImage.src = `${CDN_URL}${imagePath}`;
-  }
+    set description(value: string) {
+        if (this.descriptionElement) this.descriptionElement.textContent = value;
+    }
 
-  set buttonText(value: string) {
-    this.cardButton.textContent = value;
-  }
+    set buttonText(value: string) {
+        if (this.buttonElement) this.buttonElement.textContent = value;
+    }
 
-  set buttonDisabled(value: boolean) {
-    this.cardButton.disabled = value;
-  }
+    set buttonDisabled(value: boolean) {
+        if (this.buttonElement) {
+            if (value) {
+                this.buttonElement.setAttribute('disabled', 'disabled');
+            } else {
+                this.buttonElement.removeAttribute('disabled');
+            }
+        }
+    }
+
+    render(data: ICardFull): HTMLElement {
+        this.title = data.title;
+        this.price = data.price;
+        this.category = data.category;
+        this.image = data.image;
+        this.description = data.description;
+        this.buttonText = data.buttonText;
+        this.buttonDisabled = data.buttonDisabled;
+        return this.container;
+    }
 }

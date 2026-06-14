@@ -1,39 +1,44 @@
-import { IProduct } from "../../types";
-import { IEvents } from "../base/Events";
+import { EventEmitter } from '../base/Events';
+import { IProduct } from '../../types';
 
 export class CartModel {
-  private items: IProduct[] = [];
+    private items: IProduct[] = [];
 
-  constructor(protected events: IEvents) {}
+    constructor(private events: EventEmitter) {}
 
-addItem(product: IProduct): void {
-  if(this.hasItem(product.id)) return;
-  this.items.push(product);
+    public getItems(): IProduct[] {
+        return this.items;
+    }
 
-  this.events.emit('basket:changed');
-};
-removeItem(product: IProduct): void {
-  this.items = this.items.filter(item => item.id !== product.id);
+    public getCount(): number {
+        return this.items.length;
+    }
 
-  this.events.emit('basket:changed');
-};
-getItemsCount(): number {
-  return this.items.length;
-};
-getItems(): IProduct[] {
-  return this.items;
-};
-getTotalPrice(): number {
-  return this.items.reduce((sum, item) => {
-    return sum + (item.price ?? 0);
-  }, 0);
-};
-hasItem(productId: string): boolean {
-  return this.items.some(item => item.id === productId);
-};
-clearCart(): void {
-  this.items = [];
-  
-  this.events.emit('basket:changed');
-}
+    public getTotal(): number {
+        return this.items.reduce((sum, item) => sum + (item.price ?? 0), 0);
+    }
+
+    public hasItem(id: string): boolean {
+        return this.items.some(item => item.id === id);
+    }
+
+    public addItem(item: IProduct): void {
+        if (!this.hasItem(item.id)) {
+            this.items.push(item);
+            this.events.emit('basket:changed', this.items);
+        }
+    }
+
+    public removeItem(id: string): void {
+        const initialLength = this.items.length;
+        this.items = this.items.filter(item => item.id !== id);
+        if (initialLength !== this.items.length) {
+            this.events.emit('basket:changed', this.items);
+        }
+    }
+
+    public clear(): void {
+        this.items = [];
+        this.events.emit('basket:changed', this.items);
+    }
 }

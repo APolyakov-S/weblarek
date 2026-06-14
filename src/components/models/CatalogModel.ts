@@ -1,29 +1,31 @@
-import { IProduct } from "../../types";
-import { IEvents } from "../base/Events";
+import { EventEmitter } from '../base/Events';
+import { IProduct } from '../../types';
 
 export class CatalogModel {
-  private products: IProduct[] = [];
-  private selectedProduct: IProduct | null = null;
+    private items: IProduct[] = [];
+    private preview: IProduct | null = null;
 
-  constructor(private events: IEvents) {};
+    constructor(private events: EventEmitter) {}
 
-setProducts(products: IProduct[]): void {
-  this.products = products;
+    public setItems(items: IProduct[]): void {
+        this.items = items;
+        this.events.emit('catalog:changed', this.items);
+    }
 
-  this.events.emit('catalog:changed');
-};
-getProducts(): IProduct[] {
-  return this.products;
-};
-setSelectedProduct(product: IProduct): void {
-  this.selectedProduct = product;
-  
-  this.events.emit('product:selected');
-};
-getSelectedProduct(): IProduct | null {
-  return this.selectedProduct;
-};
-getProductById(productId: string): IProduct | undefined {
-  return this.products.find(product => product.id === productId);
-}
+    public getItems(): IProduct[] {
+        return this.items;
+    }
+
+    public getItem(id: string): IProduct | undefined {
+        return this.items.find(item => item.id === id);
+    }
+
+    public setPreview(item: IProduct): void {
+        this.preview = item;
+        this.events.emit('product:selected', this.preview);
+    }
+
+    public getPreview(): IProduct | null {
+        return this.preview;
+    }
 }

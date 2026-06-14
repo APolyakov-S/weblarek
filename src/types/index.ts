@@ -56,7 +56,6 @@ export interface ICardFull extends ICardBase {
   category: string;
   description: string;
   image: string;
-  inBasket: boolean;
   buttonText: string;
   buttonDisabled: boolean;
 }
