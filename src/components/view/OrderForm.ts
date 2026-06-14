@@ -1,75 +1,52 @@
-import { Form } from './Form';
-import { EventEmitter } from '../base/Events';
 import { ensureElement } from '../../utils/utils';
+import { IEvents } from '../base/Events';
+import { TPayment } from '../../types';
+import { IOrderForm } from '../../types';
+import { FormBase } from './FormBase';
 
-export interface IOrderFormData {
-    payment: 'card' | 'cash';
-    address: string;
-}
+export class OrderForm extends FormBase<IOrderForm> {
+  protected cardButton: HTMLButtonElement;
+  protected cashButton: HTMLButtonElement;
+  protected addressInput: HTMLInputElement;
 
-export class OrderForm extends Form<IOrderFormData> {
-    private cardButton: HTMLButtonElement;
-    private cashButton: HTMLButtonElement;
-    private addressInput: HTMLInputElement;
+  constructor(container: HTMLFormElement, events: IEvents) {
+    super(container, events);
 
-    constructor(container: HTMLElement, events?: EventEmitter) {
-        super(container, events);
-        
-        this.cardButton = ensureElement('.button_alt', this.container) as HTMLButtonElement;
-        this.cashButton = ensureElement('.button_alt', this.container) as HTMLButtonElement;
-        this.addressInput = this.findInput('address') as HTMLInputElement;
-        
-        this.cardButton.addEventListener('click', () => this.setPayment('card'));
-        this.cashButton.addEventListener('click', () => this.setPayment('cash'));
-        this.addressInput.addEventListener('input', () => this.validate());
-        
-        this.submitButton.addEventListener('click', () => {
-            if (this.validate()) {
-                this.events?.emit('order:submit', this.getValue());
-            }
-        });
-    }
+    this.cardButton = ensureElement<HTMLButtonElement>(
+      'button[name="card"]',
+      this.container,
+    );
+    this.cashButton = ensureElement<HTMLButtonElement>(
+      'button[name="cash"]',
+      this.container,
+    );
+    this.addressInput = ensureElement<HTMLInputElement>(
+      'input[name="address"]',
+      this.container,
+    );
 
-    protected getEventPrefix(): string {
-        return 'order';
-    }
+    this.cardButton.addEventListener('click', () => {
+      this.events.emit('order.payment:change', { payment: 'card' });
+    });
 
-    setPayment(method: 'card' | 'cash'): void {
-        this.cardButton.classList.toggle('button_alt-active', method === 'card');
-        this.cashButton.classList.toggle('button_alt-active', method === 'cash');
-        this.validate();
-    }
+    this.cashButton.addEventListener('click', () => {
+      this.events.emit('order.payment:change', { payment: 'cash' });
+    });
 
-    setAddress(address: string): void {
-        if (this.addressInput) {
-            this.addressInput.value = address;
-            this.validate();
-        }
-    }
+    this.addressInput.addEventListener('input', () => {
+      this.events.emit('order.address:change', {
+        address: this.addressInput.value,
+      });
+    });
 
-    getValue(): IOrderFormData {
-        return {
-            payment: this.cardButton.classList.contains('button_alt-active') ? 'card' : 'cash',
-            address: this.addressInput?.value || ''
-        };
-    }
+  }
 
-    private validate(): boolean {
-        const hasPayment = this.cardButton.classList.contains('button_alt-active') || 
-                          this.cashButton.classList.contains('button_alt-active');
-        const hasAddress = this.addressInput && this.addressInput.value.trim().length > 0;
-        const isValid = hasPayment && hasAddress;
-        
-        this.setValid(isValid);
-        
-        if (!hasPayment) {
-            this.setErrors({ payment: 'Выберите способ оплаты' });
-        } else if (!hasAddress) {
-            this.setErrors({ address: 'Укажите адрес доставки' });
-        } else {
-            this.setErrors({});
-        }
-        
-        return isValid;
-    }
+  set payment(value: TPayment | null) {
+    this.cardButton.classList.toggle('button_alt-active', value === 'card');
+    this.cashButton.classList.toggle('button_alt-active', value === 'cash');
+  }
+
+  set address(value: string) {
+    this.addressInput.value = value;
+  }
 }

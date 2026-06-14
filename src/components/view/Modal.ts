@@ -1,47 +1,49 @@
+import { Component } from '../base/Component';
 import { ensureElement } from '../../utils/utils';
+import { IEvents } from '../base/Events';
+import { IModal } from '../../types';
 
-export class Modal {
-    private container: HTMLElement;
-    private contentContainer: HTMLElement;
-    private closeButton: HTMLElement;
+export class Modal extends Component<IModal> {
+  protected closeButton: HTMLButtonElement;
+  protected contentElement: HTMLElement;
 
-    constructor(container: HTMLElement, private onClose?: () => void) {
-        this.container = container;
-        this.contentContainer = ensureElement('.modal__content', this.container);
-        this.closeButton = ensureElement('.modal__close', this.container);
-        
-        this.closeButton.addEventListener('click', () => this.close());
-        this.container.addEventListener('click', (e) => {
-            if (e.target === this.container) {
-                this.close();
-            }
-        });
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isOpen) {
-                this.close();
-            }
-        });
-    }
+  constructor(
+    container: HTMLElement,
+    protected events: IEvents,
+  ) {
+    super(container);
 
-    get isOpen(): boolean {
-        return this.container.classList.contains('modal_active');
-    }
+    this.closeButton = ensureElement<HTMLButtonElement>(
+      '.modal__close',
+      this.container,
+    );
 
-    open(content?: HTMLElement): void {
-        if (content) {
-            this.contentContainer.innerHTML = '';
-            this.contentContainer.appendChild(content);
-        }
-        this.container.classList.add('modal_active');
-        document.body.style.overflow = 'hidden';
-    }
+    this.contentElement = ensureElement<HTMLElement>(
+      '.modal__content',
+      this.container,
+    );
 
-    close(): void {
-        this.container.classList.remove('modal_active');
-        document.body.style.overflow = '';
-        if (this.onClose) {
-            this.onClose();
-        }
-    }
+    this.closeButton.addEventListener('click', () => {
+      this.close();
+    });
+
+    this.container.addEventListener('click', (event) => {
+      if (event.target === this.container) {
+        this.close();
+      }
+    });
+  }
+
+  set content(value: HTMLElement) {
+    this.contentElement.replaceChildren(value);
+  }
+
+  open(): void {
+    this.container.classList.add('modal_active');
+  }
+
+  close(): void {
+    this.container.classList.remove('modal_active');
+    this.contentElement.replaceChildren();
+  }
 }

@@ -1,29 +1,25 @@
-import { Component } from '../base/Component';
-import { EventEmitter } from '../base/Events';
-import { ensureElement } from '../../utils/utils';
+import { Component } from "../base/Component";
+import { ensureElement } from "../../utils/utils";
+import { IEvents } from "../base/Events";
+import { IHeader } from "../../types";
 
-export class Header extends Component<{ counter: number }> {
-    private basketCounter: HTMLElement;
-    private basketButton: HTMLElement;
+export class Header extends Component<IHeader> {
+  protected counterElement: HTMLElement;
+  protected basketButton: HTMLButtonElement;
 
-    constructor(container: HTMLElement, private events?: EventEmitter) {
-        super(container);
-        this.basketCounter = ensureElement('.header__basket-counter', this.container);
-        this.basketButton = ensureElement('.header__basket', this.container);
-        
-        this.basketButton.addEventListener('click', () => {
-            this.events?.emit('header:basket');
-        });
-    }
+  constructor(container: HTMLElement, protected events: IEvents) {
+    super(container);
 
-    setCounter(count: number): void {
-        this.basketCounter.textContent = String(count);
-    }
+    this.counterElement = ensureElement<HTMLElement>('.header__basket-counter', this.container);
 
-    render(data?: { counter: number }): HTMLElement {
-        if (data?.counter !== undefined) {
-            this.setCounter(data.counter);
-        }
-        return this.container;
-    }
+    this.basketButton = ensureElement<HTMLButtonElement>('.header__basket', this.container);
+
+    this.basketButton.addEventListener('click', () => {
+      this.events.emit('basket:open');
+    });
+  }
+
+  set counter(value: number) {
+    this.counterElement.textContent = String(value);
+  }
 }

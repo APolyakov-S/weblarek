@@ -136,3 +136,23 @@ export function createElement<
     }
     return element;
 }
+
+/**
+ * Обновляет текст категории товара
+ * и применяет CSS-модификатор 
+ * для корректного отображения фона категории.
+ */
+
+export function setCategoryStyle(
+    element: HTMLElement,
+    value: string,
+    categoryMap: Record<string, string>
+): void {
+  element.textContent = value;
+  element.className = 'card__category';
+  const categoryClass = categoryMap[value as keyof typeof categoryMap];
+
+  if (categoryClass) {
+    element.classList.add(categoryClass);
+  }
+}
