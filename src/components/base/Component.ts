@@ -11,7 +11,7 @@ export abstract class Component<T> {
     }
 
     render(data?: Partial<T>): HTMLElement {
-        Object.assign(this, data);
+        Object.assign(this as object, data ?? {});
         return this.container;
     }
 }

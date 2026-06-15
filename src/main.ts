@@ -46,6 +46,12 @@ const orderForm = new OrderForm(cloneTemplate<HTMLFormElement>(orderTemplate), e
 const contactsForm = new ContactsForm(cloneTemplate<HTMLFormElement>(contactsTemplate), events);
 const success = new Success(cloneTemplate<HTMLElement>(successTemplate), events);
 
+// Создаём экземпляр CardFull один раз
+const cardFullElement = cloneTemplate<HTMLElement>(cardFullTemplate);
+const cardFull = new CardFull(cardFullElement, {
+    onButtonClick: () => events.emit('card:action')
+});
+
 // Функция для рендера корзины
 function renderBasket(): void {
     const items = cartModel.getItems();
@@ -70,8 +76,8 @@ communication.getProducts()
     .catch(err => console.log('Ошибка загрузки товаров', err));
 
 // Обрабатываем изменение каталога товаров
-events.on('catalog:changed', (data: { items: IProduct[] }) => {
-    const items = Array.isArray(data) ? data : (data as any).items || [];
+events.on('catalog:changed', () => {
+    const items = catalogModel.getItems();
     const cards = items.map((product: IProduct) => {
         const cardElement = cloneTemplate<HTMLButtonElement>(cardCatalogTemplate);
         const card = new CardCatalog(cardElement, {
@@ -88,18 +94,16 @@ events.on('card:select', (data: { id: string }) => {
     if (product) catalogModel.setPreview(product);
 });
 
-// Обрабатываем изменение выбранного товара и открытие модального окна с выбранным товаром
-events.on('product:selected', (product: IProduct) => {
+// Обрабатываем изменение выбранного товара и открытие модального окна
+events.on('product:selected', () => {
+    const product = catalogModel.getPreview();
+    if (!product) return;
+
     const inBasket = cartModel.hasItem(product.id);
     const isUnavailable = product.price === null;
 
-    const cardElement = cloneTemplate<HTMLElement>(cardFullTemplate);
-    const card = new CardFull(cardElement, {
-        onButtonClick: () => events.emit('card:action', { id: product.id })
-    });
-
     modal.render({
-        content: card.render({
+        content: cardFull.render({
             ...product,
             buttonText: isUnavailable ? 'Недоступно' : (inBasket ? 'Удалить из корзины' : 'В корзину'),
             buttonDisabled: isUnavailable
@@ -108,9 +112,9 @@ events.on('product:selected', (product: IProduct) => {
     modal.open();
 });
 
-// Обрабатываем действие по кнопке в карточке товара (добавление/удаление)
-events.on('card:action', (data: { id: string }) => {
-    const product = catalogModel.getItem(data.id);
+// Обрабатываем действие по кнопке в карточке товара
+events.on('card:action', () => {
+    const product = catalogModel.getPreview();
     if (!product) return;
 
     if (cartModel.hasItem(product.id)) {
@@ -119,10 +123,8 @@ events.on('card:action', (data: { id: string }) => {
         cartModel.addItem(product);
     }
 
-    const currentPreview = catalogModel.getPreview();
-    if (currentPreview && currentPreview.id === product.id) {
-        catalogModel.setPreview(currentPreview);
-    }
+    // Закрываем модальное окно после действия
+    modal.close();
 });
 
 // Обрабатываем изменение корзины
@@ -134,11 +136,6 @@ events.on('basket:changed', () => {
 // Обрабатываем нажатие на кнопку удаления товара из корзины в окне корзины
 events.on('basket:item-delete', (data: { id: string }) => {
     cartModel.removeItem(data.id);
-    
-    const currentPreview = catalogModel.getPreview();
-    if (currentPreview && currentPreview.id === data.id) {
-        catalogModel.setPreview(currentPreview);
-    }
 });
 
 // Обрабатываем нажатие на кнопку корзины
@@ -213,13 +210,8 @@ events.on('contacts:submit', () => {
         .catch(error => console.log('Ошибка оформления заказа:', error));
 });
 
-// Обрабатываем нажатие на кнопку "За новыми покупками!" в окне успешного оформления заказа
+// Обрабатываем нажатие на кнопку "За новыми покупками!"
 events.on('success:close', () => modal.close());
-
-// Обрабатываем закрытие модального окна
-events.on('modal:closed', () => {
-    modal.render({ content: null as unknown as HTMLElement });
-});
 
 // Устанавливаем начальное состояние корзины
 cartModel.clear();

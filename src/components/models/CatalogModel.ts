@@ -3,13 +3,14 @@ import { IProduct } from '../../types';
 
 export class CatalogModel {
     private items: IProduct[] = [];
+
     private preview: IProduct | null = null;
 
     constructor(private events: EventEmitter) {}
 
     public setItems(items: IProduct[]): void {
         this.items = items;
-        this.events.emit('catalog:changed', this.items);
+        this.events.emit('catalog:changed');
     }
 
     public getItems(): IProduct[] {
@@ -22,7 +23,7 @@ export class CatalogModel {
 
     public setPreview(item: IProduct): void {
         this.preview = item;
-        this.events.emit('product:selected', this.preview);
+        this.events.emit('product:selected');
     }
 
     public getPreview(): IProduct | null {

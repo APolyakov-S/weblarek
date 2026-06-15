@@ -1,5 +1,6 @@
 https://github.com/APolyakov-S/weblarek.git
 
+
 # Проектная работа "Веб-ларек"
 
 Стек: HTML, SCSS, TS, Vite
@@ -153,7 +154,7 @@ interface IBuyer {
 - `public setItems(items: IProduct[]): void` — сохраняет массив товаров. Генерирует событие `catalog:changed`.
 - `public getItems(): IProduct[]` — возвращает массив всех товаров.
 - `public getItem(id: string): IProduct | undefined` — возвращает товар по id.
-- `public setPreview(item: IProduct): void` — сохраняет товар для просмотра. Генерирует событие `preview:changed`.
+- `public setPreview(item: IProduct): void` — сохраняет товар для просмотра. Генерирует событие `product:selected`.
 - `public getPreview(): IProduct | null` — возвращает текущий выбранный товар.
 
 ### Класс `CartModel`
@@ -168,9 +169,9 @@ interface IBuyer {
 
 **Методы класса:**
 - `public getItems(): IProduct[]` — возвращает массив товаров в корзине.
-- `public addItem(item: IProduct): void` — добавляет товар. Генерирует событие `cart:changed`.
-- `public removeItem(itemId: string): void` — удаляет товар по id. Генерирует событие `cart:changed`.
-- `public clear(): void` — очищает корзину. Генерирует событие `cart:changed`.
+- `public addItem(item: IProduct): void` — добавляет товар. Генерирует событие `basket:changed`.
+- `public removeItem(itemId: string): void` — удаляет товар по id. Генерирует событие `basket:changed`.
+- `public clear(): void` — очищает корзину. Генерирует событие `basket:changed`.
 - `public getTotal(): number` — возвращает общую стоимость.
 - `public getCount(): number` — возвращает количество товаров.
 - `public hasItem(id: string): boolean` — проверяет наличие товара в корзине.
@@ -189,13 +190,10 @@ interface IBuyer {
 - `private phone: string` — номер телефона
 
 **Методы класса:**
-- `public setPayment(payment: TPayment): void` — сохраняет способ оплаты. Генерирует событие `buyer:changed`.
-- `public setAddress(address: string): void` — сохраняет адрес. Генерирует событие `buyer:changed`.
-- `public setEmail(email: string): void` — сохраняет email. Генерирует событие `buyer:changed`.
-- `public setPhone(phone: string): void` — сохраняет телефон. Генерирует событие `buyer:changed`.
-- `public getBuyerData(): IBuyer` — возвращает все данные покупателя.
+- `public update(data: Partial<IBuyer>): void` — обновляет данные покупателя. Генерирует событие `buyer:changed`.
+- `public getData(): IBuyer` — возвращает все данные покупателя.
 - `public clear(): void` — очищает данные. Генерирует событие `buyer:changed`.
-- `public validate(): TValidationErrors` — валидирует данные. Возвращает объект с ошибками.
+- `public validate(): TBuyerErrors` — валидирует данные. Возвращает объект с ошибками.
 
 ### Слой коммуникации
 
@@ -297,7 +295,7 @@ interface IGallery {
 
 Методы класса:
 
-`set catalog(value: HTMLElement[])` - вставляет список карточек товаров в контейнер каталога
+`set items(value: HTMLElement[])` - вставляет список карточек товаров в контейнер каталога
 
 #### Интерфейс IModal
 
@@ -328,8 +326,8 @@ interface IModal {
 `set content(value: HTMLElement)` - вставляет переданный контент в модальное окно  
 `open()` - открывает модальное окно
 `close()` - закрывает модальное окно и очищает контент
-обработчик события click на кнопке закрытия - вызывает метод `close()`
-обработчик события click по оверлею - вызывает метод `close()`
+- обработчик события click на кнопке закрытия - вызывает метод `close()`
+- обработчик события click по оверлею - вызывает метод `close()`
 
 #### Интерфейс ISuccess
 
@@ -442,7 +440,7 @@ interface ICardCatalog extends ICardBase {
 Описывает обработчики действий пользователя в карточке каталога.
 
 ```ts
-type CardCatalogActions = {
+type TCardCatalogActions = {
   onSelect: () => void; // обработчик выбора товара
 };
 ```
@@ -450,6 +448,8 @@ type CardCatalogActions = {
 #### Класс `CardCatalog`
 
 Реализует слой отображения карточки товара в каталоге. Отвечает за отображение категории, изображения, названия и цены товара, а также за обработку выбора карточки.
+
+**Наследование:** `CardCatalog extends CardBase<ICardCatalog>`
 
 Поля:
 
@@ -459,12 +459,13 @@ type CardCatalogActions = {
 Конструктор принимает:
 
 `container: HTMLElement` - корневой элемент карточки
-`actions: CardCatalogActions` - объект с обработчиком выбора товара
+`actions: TCardCatalogActions` - объект с обработчиком выбора товара
 
 Методы класса:
 
 `set category(value: string)` - обновляет текст категории и CSS-модификатор категории
 `set image(value: string)` - обновляет изображение товара
+
 - класс использует обработчик `onSelect`, передаваемый через объект действий `TCardCatalogActions`, для открытия полной карточки товара в модальном окне.
 
 #### Интерфейс `ICardFull`
@@ -476,7 +477,6 @@ interface ICardFull extends ICardBase {
   category: string; // категория товара
   description: string; // описание товара
   image: string; // ссылка на изображение товара
-  inBasket: boolean; // находится ли товар в корзине
   buttonText: string; // текст кнопки действия
   buttonDisabled: boolean; // состояние доступности кнопки действия
 }
@@ -487,36 +487,38 @@ interface ICardFull extends ICardBase {
 Описывает обработчики действий пользователя в полной карточке товара.
 
 ```ts
-type CardFullActions = {
-  onAddToBasket: () => void; // обработчик добавления товара в корзину
+type TCardFullActions = {
+  onButtonClick: () => void; // обработчик нажатия на кнопку
 };
 ```
 
 #### Класс `CardFull`
 
-Реализует слой отображения полной карточки товара в модальном окне. Отвечает за отображение категории, изображения, описания, названия и цены товара, а также за обработку добавления товара в корзину.
+Реализует слой отображения полной карточки товара в модальном окне. Отвечает за отображение категории, изображения, описания, названия и цены товара, а также за обработку нажатия на кнопку.
+
+**Наследование:** `CardFull extends CardBase<ICardFull>`
 
 Поля:
 
 `protected cardCategory: HTMLElement` - элемент для отображения категории товара
 `protected cardImage: HTMLImageElement` - элемент изображения товара
 `protected cardDescription: HTMLElement` - элемент для отображения описания товара
-`protected cardButton: HTMLButtonElement` - кнопка добавления товара в корзину
+`protected cardButton: HTMLButtonElement` - кнопка действия
 
 Конструктор принимает:
 
 `container: HTMLElement` - корневой элемент полной карточки
-`actions: CardFullActions` - объект с обработчиком добавления товара в корзину
+`actions?: TCardFullActions` - опциональный объект с обработчиком нажатия на кнопку
 
 Методы класса:
 
 `set category(value: string)` - обновляет текст категории и CSS-модификатор категории
 `set description(value: string)` - обновляет описание товара
 `set image(value: string)` - обновляет изображение товара
-`set inBasket(value: boolean)` - изменяет состояние отображения товара как находящегося в корзине
 `set buttonText(value: string)` - обновляет текст кнопки действия
 `set buttonDisabled(value: boolean)` - включает или отключает кнопку действия
-- класс использует обработчик `onButtonClick`, передаваемый через объект действий `TCardFullActions`. В зависимости от состояния товара обработчик может инициировать добавление или удаление товара из корзины
+
+- класс использует обработчик `onButtonClick`, передаваемый через объект действий `TCardFullActions`
 
 #### Интерфейс `ICardBasket`
 
@@ -533,7 +535,7 @@ interface ICardBasket extends ICardBase {
 Описывает обработчики действий пользователя в карточке корзины.
 
 ```ts
-type CardBasketActions = {
+type TCardBasketActions = {
   onDelete: () => void; // обработчик удаления товара из корзины
 };
 ```
@@ -541,6 +543,8 @@ type CardBasketActions = {
 #### Класс `CardBasket`
 
 Реализует слой отображения карточки товара в корзине. Отвечает за отображение порядкового номера, названия и цены товара, а также за обработку удаления товара из корзины.
+
+**Наследование:** `CardBasket extends CardBase<ICardBasket>`
 
 Поля:
 
@@ -550,11 +554,12 @@ type CardBasketActions = {
 Конструктор принимает:
 
 `container: HTMLElement` - корневой элемент карточки корзины
-`actions: CardBasketActions` - объект с обработчиком удаления товара
+`actions: TCardBasketActions` - объект с обработчиком удаления товара
 
 Методы класса:
 
 `set index(value: number)` - обновляет порядковый номер товара в корзине
+
 - класс использует обработчик `onDelete`, передаваемый через объект действий `TCardBasketActions`, для удаления товара из корзины.
 
 ##### Функция `setCategoryStyle` - располагается в src/utils/utils.ts
@@ -628,6 +633,8 @@ interface IOrderForm {
 
 Реализует слой отображения формы заказа. Отвечает за выбор способа оплаты, ввод адреса доставки и генерацию событий при изменении данных формы.
 
+**Наследование:** `OrderForm extends FormBase<IOrderForm>`
+
 Поля:
 
 `protected cardButton: HTMLButtonElement` - кнопка выбора оплаты онлайн
@@ -663,6 +670,8 @@ interface IContactsForm {
 #### Класс `ContactsForm`
 
 Реализует слой отображения формы контактов. Отвечает за ввод email и телефона, а также за генерацию событий при изменении данных формы.
+
+**Наследование:** `ContactsForm extends FormBase<IContactsForm>`
 
 Поля:
 
@@ -705,26 +714,23 @@ interface IContactsForm {
 
 #### События моделей данных
 
-- catalog:changed - изменение списка товаров каталога
-- product:selected - изменение выбранного товара
-- basket:changed - изменение содержимого корзины
-- buyer:changed - изменение данных покупателя
+- `catalog:changed` - изменение списка товаров каталога
+- `product:selected` - изменение выбранного товара
+- `basket:changed` - изменение содержимого корзины
+- `buyer:changed` - изменение данных покупателя
 
 #### События представлений
 
-- card:select - выбор карточки товара для просмотра
-- basket:add - добавления товара в корзину при нажатии кнопки "В корзину" в окне отображения выбранного товара
-- basket:delete - удаление товара из корзины при нажатии кнопки "Удалить из корзины" в окне отображения выбранного товара
-- basket:item-delete - удаление товара из корзины при нажатии на кнопку удаления товара из корзины в окне корзины
-- basket:open - открытие корзины
-- basket:submit - переход к оформлению заказа
-
-- order.payment:change - изменение способа оплаты
-- order.address:change - изменение адреса доставки
-- order:submit - отправка первой формы заказа
-
-- contacts.email:change - изменение email
-- contacts.phone:change - изменение телефона
-- contacts:submit - отправка заказа на сервер
-
-- success:close - закрытие окна успешного оформления заказа
+- `card:select` - выбор карточки товара для просмотра
+- `card:action` - действие по кнопке в карточке товара (добавление/удаление)
+- `basket:item-delete` - удаление товара из корзины
+- `basket:open` - открытие корзины
+- `basket:submit` - переход к оформлению заказа
+- `order.payment:change` - изменение способа оплаты
+- `order.address:change` - изменение адреса доставки
+- `order:submit` - отправка первой формы заказа
+- `contacts.email:change` - изменение email
+- `contacts.phone:change` - изменение телефона
+- `contacts:submit` - отправка заказа на сервер
+- `success:close` - закрытие окна успешного оформления заказа
+```
